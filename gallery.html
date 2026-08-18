@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gallery - ABU JAY</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a0a2e;
+            color: #fff;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #c084fc;
+            letter-spacing: 1px;
+        }
+
+        h1 span {
+            color: #fff;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        button:active {
+            transform: scale(0.95);
+            opacity: 0.7;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+        }
+
+        .btn-danger {
+            background: rgba(248, 113, 113, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.1);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .btn-primary {
+            background: #6c2bd9;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(108, 43, 217, 0.2);
+        }
+
+        .back-link {
+            color: #64d8ff;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 16px;
+            border: 1px solid rgba(100, 216, 255, 0.1);
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        .back-link:active {
+            opacity: 0.7;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .gallery-item {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(108, 43, 217, 0.06);
+            position: relative;
+            transition: all 0.2s;
+        }
+        .gallery-item:active {
+            transform: scale(0.97);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+        }
+
+        .gallery-item .info {
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.15);
+            font-family: monospace;
+        }
+
+        .gallery-item .delete-btn {
+            background: rgba(248, 113, 113, 0.1);
+            border: none;
+            color: #f87171;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .gallery-item .delete-btn:active {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        .empty {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.1);
+            padding: 60px 0;
+            font-size: 18px;
+        }
+        .empty small {
+            color: rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+            display: block;
+            margin-top: 8px;
+        }
+
+        .empty .btn-primary {
+            margin-top: 16px;
+        }
+
+        .photo-count {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            margin-top: 16px;
+        }
+        .photo-count span {
+            color: #c084fc;
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 22px;
+            }
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 10px;
+            }
+            button {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>🖼️ <span>ABU</span> JAY</h1>
+            <p class="subtitle">All photos stored in sessionStorage</p>
+        </div>
+        <div class="header-actions">
+            <a class="back-link" href="index.html" target="_blank">← Capture</a>
+            <button class="btn-success" id="downloadAllBtn">💾 Download All</button>
+            <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
+            <button class="btn-secondary" id="refreshBtn">🔄 Refresh</button>
+        </div>
+    </div>
+
+    <div id="gallery"></div>
+
+    <div class="photo-count">
+        📷 <span id="countDisplay">0</span> photos stored
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            function getPhotos() {
+                try {
+                    return JSON.parse(sessionStorage.getItem('autoPhotos') || '[]');
+                } catch {
+                    return [];
+                }
+            }
+
+            function savePhotos(photos) {
+                sessionStorage.setItem('autoPhotos', JSON.stringify(photos));
+            }
+
+            function deletePhoto(index) {
+                const photos = getPhotos();
+                photos.splice(index, 1);
+                savePhotos(photos);
+                renderGallery();
+                updateCount();
+            }
+
+            function clearAll() {
+                const photos = getPhotos();
+                if (photos.length === 0) return;
+                if (confirm('Delete all photos?')) {
+                    savePhotos([]);
+                    renderGallery();
+                    updateCount();
+                }
+            }
+
+            function downloadAll() {
+                const photos = getPhotos();
+                if (photos.length === 0) {
+                    alert('📭 No photos to download');
+                    return;
+                }
+
+                photos.forEach((photo, index) => {
+                    const link = document.createElement('a');
+                    link.download = `photo-${index + 1}.jpg`;
+                    link.href = photo.data;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+
+                const btn = document.getElementById('downloadAllBtn');
+                btn.textContent = '✅ Downloaded!';
+                setTimeout(function() {
+                    btn.textContent = '💾 Download All';
+                }, 2000);
+            }
+
+            function updateCount() {
+                const photos = getPhotos();
+                document.getElementById('countDisplay').textContent = photos.length;
+            }
+
+            function renderGallery() {
+                const photos = getPhotos();
+                const container = document.getElementById('gallery');
+
+                if (photos.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty">
+                            📭 No photos yet
+                            <small>Open capture page to take photos</small>
+                            <br>
+                            <a href="index.html" target="_blank" class="btn-primary" style="display:inline-block; padding:12px 24px; border-radius:12px; text-decoration:none; color:#fff; background:#6c2bd9; margin-top:12px;">
+                                📸 Take Photo
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div class="gallery-grid">';
+                photos.forEach((photo, index) => {
+                    html += `
+                        <div class="gallery-item">
+                            <img src="${photo.data}" alt="Photo ${index + 1}" 
+                                 onclick="window.open('${photo.data}', '_blank')">
+                            <div class="info">
+                                <span>#${index + 1} ${photo.time || ''}</span>
+                                <button class="delete-btn" data-index="${index}">✕</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const index = parseInt(this.dataset.index, 10);
+                        deletePhoto(index);
+                    });
+                });
+
+                updateCount();
+            }
+
+            let lastPhotoCount = 0;
+
+            function checkForUpdates() {
+                const photos = getPhotos();
+                if (photos.length !== lastPhotoCount) {
+                    lastPhotoCount = photos.length;
+                    renderGallery();
+                }
+            }
+
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                renderGallery();
+                this.textContent = '✅ Refreshed!';
+                setTimeout(() => { this.textContent = '🔄 Refresh'; }, 1500);
+            });
+
+            document.getElementById('clearBtn').addEventListener('click', clearAll);
+            document.getElementById('downloadAllBtn').addEventListener('click', downloadAll);
+
+            window.addEventListener('load', function() {
+                renderGallery();
+                lastPhotoCount = getPhotos().length;
+                setInterval(checkForUpdates, 2000);
+            });
+
+            console.log('🖼️ ABU JAY Gallery loaded — auto-refreshing every 2s');
+
+        })();
+    </script>
+
+</body>
+</html>
