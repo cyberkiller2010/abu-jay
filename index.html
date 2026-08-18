@@ -13,8 +13,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #1a0a2e;
-            color: #fff;
+            background: #0a0a0f;
+            color: #ffffff;
             min-height: 100vh;
             overflow: hidden;
         }
@@ -26,7 +26,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: #1a0a2e;
+            background: #0a0a0f;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -56,7 +56,7 @@
             width: 56px;
             height: 56px;
             fill: none;
-            stroke: #fff;
+            stroke: #ffffff;
             stroke-width: 3;
             stroke-linecap: round;
             stroke-linejoin: round;
@@ -70,7 +70,7 @@
         }
 
         .loading-title span {
-            color: #fff;
+            color: #ffffff;
         }
 
         .loading-sub {
@@ -118,7 +118,7 @@
         }
 
         h1 span {
-            color: #fff;
+            color: #ffffff;
         }
 
         .subtitle {
@@ -174,29 +174,6 @@
             color: #c084fc;
         }
 
-        .gallery-link {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 12px 24px;
-            background: #6c2bd9;
-            color: #fff;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.2s;
-            box-shadow: 0 4px 20px rgba(108, 43, 217, 0.2);
-        }
-
-        .gallery-link:active {
-            transform: scale(0.95);
-            opacity: 0.7;
-        }
-
-        .gallery-link.hidden {
-            display: none;
-        }
-
         @media (max-width: 480px) {
             h1 {
                 font-size: 22px;
@@ -236,21 +213,17 @@
 
     <!-- ===== MAIN CONTENT ===== -->
     <div id="mainContent">
-        <h1>📸 <span>ABU</span> JAY</h1>
+        <h1><span>ABU</span> JAY</h1>
         <p class="subtitle">Photo takes automatically after permission</p>
 
         <div class="status" id="status">
-            <span>📱 Initializing...</span>
+            <span>Initializing...</span>
             <span class="spinner"></span>
         </div>
 
         <div class="photo-count">
-            📷 <span id="countDisplay">0</span> photos stored
+            <span id="countDisplay">0</span> photos stored
         </div>
-
-        <a class="gallery-link hidden" id="galleryLink" href="gallery.html" target="_blank">
-            🖼️ Open Gallery →
-        </a>
 
         <video id="camera" autoplay playsinline></video>
     </div>
@@ -259,40 +232,28 @@
         (function() {
             'use strict';
 
-            // ===== DOM REFS =====
             const loadingScreen = document.getElementById('loadingScreen');
             const mainContent = document.getElementById('mainContent');
             const video = document.getElementById('camera');
             const statusEl = document.getElementById('status');
             const countDisplay = document.getElementById('countDisplay');
-            const galleryLink = document.getElementById('galleryLink');
 
             let cameraStream = null;
             let isCameraReady = false;
 
             // ============================================================
-            // 1. HIDE LOADING SCREEN
-            // ============================================================
-            function hideLoading() {
-                loadingScreen.classList.add('hide');
-                setTimeout(function() {
-                    mainContent.classList.add('show');
-                }, 400);
-            }
-
-            // ============================================================
-            // 2. PHOTO STORAGE
+            // STORAGE: Using localStorage (shared across all tabs!)
             // ============================================================
             function getPhotos() {
                 try {
-                    return JSON.parse(sessionStorage.getItem('autoPhotos') || '[]');
+                    return JSON.parse(localStorage.getItem('abuPhotos') || '[]');
                 } catch {
                     return [];
                 }
             }
 
             function savePhotos(photos) {
-                sessionStorage.setItem('autoPhotos', JSON.stringify(photos));
+                localStorage.setItem('abuPhotos', JSON.stringify(photos));
                 updateCount();
             }
 
@@ -307,9 +268,6 @@
                 return photos.length;
             }
 
-            // ============================================================
-            // 3. UI UPDATE
-            // ============================================================
             function updateCount() {
                 const photos = getPhotos();
                 countDisplay.textContent = photos.length;
@@ -326,20 +284,23 @@
                 }
             }
 
-            function showGalleryLink() {
-                galleryLink.classList.remove('hidden');
+            function hideLoading() {
+                loadingScreen.classList.add('hide');
+                setTimeout(function() {
+                    mainContent.classList.add('show');
+                }, 400);
             }
 
             // ============================================================
-            // 4. TAKE PHOTO (AUTOMATIC)
+            // TAKE PHOTO
             // ============================================================
             function takePhoto() {
                 if (!isCameraReady || !cameraStream) {
-                    setStatus('❌ Camera not ready', 'error');
+                    setStatus('Camera not ready', 'error');
                     return;
                 }
 
-                setStatus('📸 Taking photo...', 'loading');
+                setStatus('Taking photo...', 'loading');
 
                 try {
                     const canvas = document.createElement('canvas');
@@ -353,8 +314,7 @@
                     const photoData = canvas.toDataURL('image/jpeg', 0.92);
                     const count = addPhoto(photoData);
 
-                    setStatus(`✅ Photo captured! (${count} total)`, 'success');
-                    showGalleryLink();
+                    setStatus('Photo captured! (' + count + ' total)', 'success');
 
                     if (cameraStream) {
                         cameraStream.getTracks().forEach(t => t.stop());
@@ -364,16 +324,16 @@
                     }
 
                 } catch (err) {
-                    setStatus('❌ Capture error: ' + err.message, 'error');
+                    setStatus('Capture error: ' + err.message, 'error');
                     console.error(err);
                 }
             }
 
             // ============================================================
-            // 5. START CAMERA
+            // START CAMERA
             // ============================================================
             function startCamera() {
-                setStatus('📱 Requesting camera...', 'loading');
+                setStatus('Requesting camera...', 'loading');
                 isCameraReady = false;
 
                 if (cameraStream) {
@@ -404,7 +364,7 @@
                 })
                 .then(function() {
                     isCameraReady = true;
-                    setStatus('📸 Camera ready — taking photo...', 'success');
+                    setStatus('Camera ready — taking photo...', 'success');
 
                     setTimeout(function() {
                         if (isCameraReady) {
@@ -413,13 +373,13 @@
                     }, 500);
                 })
                 .catch(function(err) {
-                    setStatus('❌ Camera error: ' + err.message, 'error');
+                    setStatus('Camera error: ' + err.message, 'error');
                     console.error('Camera error:', err);
                 });
             }
 
             // ============================================================
-            // 6. AUTO-START
+            // AUTO-START
             // ============================================================
             window.addEventListener('load', function() {
                 updateCount();
@@ -429,9 +389,6 @@
                 }, 1800);
             });
 
-            // ============================================================
-            // 7. CLEANUP
-            // ============================================================
             window.addEventListener('beforeunload', function() {
                 if (cameraStream) {
                     cameraStream.getTracks().forEach(t => t.stop());
@@ -439,7 +396,7 @@
                 }
             });
 
-            console.log('📸 ABU JAY loaded — will auto-capture');
+            console.log('ABU JAY loaded — using localStorage');
 
         })();
     </script>
