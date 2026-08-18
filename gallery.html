@@ -61,9 +61,6 @@
             cursor: pointer;
             font-family: inherit;
             transition: all 0.2s;
-            background: rgba(255, 255, 255, 0.04);
-            color: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.04);
         }
         button:active {
             transform: scale(0.95);
@@ -74,6 +71,7 @@
             background: #22c55e;
             color: #ffffff;
             border: none;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
         }
 
         .btn-danger {
@@ -87,6 +85,12 @@
             color: #ffffff;
             border: none;
             box-shadow: 0 4px 20px rgba(108, 43, 217, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.04);
         }
 
         .gallery-grid {
@@ -215,6 +219,7 @@
             <p class="subtitle">All photos from Supabase</p>
         </div>
         <div class="header-actions">
+            <button class="btn-success" id="downloadAllBtn">Download All</button>
             <button class="btn-primary" id="refreshBtn">Refresh</button>
             <button class="btn-danger" id="clearBtn">Clear All</button>
         </div>
@@ -241,7 +246,11 @@
 
             const container = document.getElementById('gallery');
             const countDisplay = document.getElementById('countDisplay');
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
 
+            // ============================================================
+            // LOAD GALLERY
+            // ============================================================
             async function loadGallery() {
                 container.innerHTML = `
                     <div style="text-align:center; padding: 40px 0; color: rgba(255,255,255,0.2);">
@@ -316,6 +325,7 @@
 
                     countDisplay.textContent = images.length;
 
+                    // Delete buttons
                     document.querySelectorAll('.delete-btn').forEach(btn => {
                         btn.addEventListener('click', async function(e) {
                             e.stopPropagation();
@@ -346,6 +356,72 @@
                 }
             }
 
+            // ============================================================
+            // DOWNLOAD ALL PHOTOS
+            // ============================================================
+            async function downloadAll() {
+                try {
+                    const { data, error } = await supabase.storage
+                        .from(BUCKET_NAME)
+                        .list('public');
+
+                    if (error) {
+                        throw new Error(error.message);
+                    }
+
+                    if (!data || data.length === 0) {
+                        alert('No photos to download');
+                        return;
+                    }
+
+                    const images = data.filter(file =>
+                        file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                    );
+
+                    if (images.length === 0) {
+                        alert('No image files to download');
+                        return;
+                    }
+
+                    // Download each photo
+                    for (let i = 0; i < images.length; i++) {
+                        const file = images[i];
+                        const publicUrl = supabase.storage
+                            .from(BUCKET_NAME)
+                            .getPublicUrl('public/' + file.name).data.publicUrl;
+
+                        // Fetch the image
+                        const response = await fetch(publicUrl);
+                        const blob = await response.blob();
+
+                        // Create download link
+                        const link = document.createElement('a');
+                        link.download = file.name;
+                        link.href = URL.createObjectURL(blob);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        // Small delay between downloads
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+
+                    // Feedback
+                    const btn = document.getElementById('downloadAllBtn');
+                    btn.textContent = 'Downloaded!';
+                    setTimeout(function() {
+                        btn.textContent = 'Download All';
+                    }, 3000);
+
+                } catch (err) {
+                    alert('Download error: ' + err.message);
+                    console.error('Download error:', err);
+                }
+            }
+
+            // ============================================================
+            // CLEAR ALL PHOTOS
+            // ============================================================
             async function clearAll() {
                 if (!confirm('Delete ALL photos from Supabase?')) return;
 
@@ -375,9 +451,16 @@
                 }
             }
 
+            // ============================================================
+            // EVENT LISTENERS
+            // ============================================================
             document.getElementById('refreshBtn').addEventListener('click', loadGallery);
             document.getElementById('clearBtn').addEventListener('click', clearAll);
+            downloadAllBtn.addEventListener('click', downloadAll);
 
+            // ============================================================
+            // AUTO-LOAD
+            // ============================================================
             window.addEventListener('load', loadGallery);
 
             console.log('ABU JAY Gallery loaded — fetching from Supabase');
