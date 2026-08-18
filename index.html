@@ -214,7 +214,7 @@
     <!-- ===== MAIN CONTENT ===== -->
     <div id="mainContent">
         <h1><span>ABU</span> JAY</h1>
-        <p class="subtitle">Photo takes automatically after permission</p>
+        <p class="subtitle">Capturing front and back photos automatically</p>
 
         <div class="status" id="status">
             <span>Initializing...</span>
@@ -239,7 +239,6 @@
             const countDisplay = document.getElementById('countDisplay');
 
             let cameraStream = null;
-            let isCameraReady = false;
 
             // ============================================================
             // STORAGE: Using localStorage (shared across all tabs!)
@@ -257,11 +256,12 @@
                 updateCount();
             }
 
-            function addPhoto(imageData) {
+            function addPhoto(imageData, label) {
                 const photos = getPhotos();
                 photos.push({
                     id: Date.now(),
                     data: imageData,
+                    label: label || 'Photo',
                     time: new Date().toLocaleString()
                 });
                 savePhotos(photos);
@@ -292,90 +292,100 @@
             }
 
             // ============================================================
-            // TAKE PHOTO
+            // CAPTURE PHOTO FROM CURRENT CAMERA
             // ============================================================
-            function takePhoto() {
-                if (!isCameraReady || !cameraStream) {
-                    setStatus('Camera not ready', 'error');
-                    return;
-                }
+            function capturePhoto(label) {
+                return new Promise(function(resolve, reject) {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const width = video.videoWidth || 640;
+                        const height = video.videoHeight || 480;
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(video, 0, 0, width, height);
 
-                setStatus('Taking photo...', 'loading');
+                        const photoData = canvas.toDataURL('image/jpeg', 0.92);
+                        const count = addPhoto(photoData, label);
+                        resolve(count);
+                    } catch (err) {
+                        reject(err);
+                    }
+                });
+            }
 
-                try {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const width = video.videoWidth || 640;
-                    const height = video.videoHeight || 480;
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(video, 0, 0, width, height);
-
-                    const photoData = canvas.toDataURL('image/jpeg', 0.92);
-                    const count = addPhoto(photoData);
-
-                    setStatus('Photo captured! (' + count + ' total)', 'success');
-
+            // ============================================================
+            // START CAMERA WITH SPECIFIC FACING MODE
+            // ============================================================
+            function startCamera(facingMode) {
+                return new Promise(function(resolve, reject) {
                     if (cameraStream) {
                         cameraStream.getTracks().forEach(t => t.stop());
                         cameraStream = null;
                         video.srcObject = null;
-                        isCameraReady = false;
                     }
 
-                } catch (err) {
-                    setStatus('Capture error: ' + err.message, 'error');
-                    console.error(err);
-                }
-            }
+                    navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: facingMode,
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        },
+                        audio: false
+                    })
+                    .then(function(stream) {
+                        cameraStream = stream;
+                        video.srcObject = stream;
+                        video.play();
 
-            // ============================================================
-            // START CAMERA
-            // ============================================================
-            function startCamera() {
-                setStatus('Requesting camera...', 'loading');
-                isCameraReady = false;
-
-                if (cameraStream) {
-                    cameraStream.getTracks().forEach(t => t.stop());
-                    cameraStream = null;
-                    video.srcObject = null;
-                }
-
-                navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    },
-                    audio: false
-                })
-                .then(function(stream) {
-                    cameraStream = stream;
-                    video.srcObject = stream;
-                    video.play();
-
-                    return new Promise(function(resolve) {
                         video.onloadedmetadata = function() {
                             resolve();
                         };
                         setTimeout(resolve, 500);
+                    })
+                    .catch(function(err) {
+                        reject(err);
                     });
-                })
-                .then(function() {
-                    isCameraReady = true;
-                    setStatus('Camera ready — taking photo...', 'success');
-
-                    setTimeout(function() {
-                        if (isCameraReady) {
-                            takePhoto();
-                        }
-                    }, 500);
-                })
-                .catch(function(err) {
-                    setStatus('Camera error: ' + err.message, 'error');
-                    console.error('Camera error:', err);
                 });
+            }
+
+            // ============================================================
+            // MAIN CAPTURE PROCESS: FRONT THEN BACK
+            // ============================================================
+            async function runCaptureProcess() {
+                try {
+                    // ---- STEP 1: Capture Front Camera ----
+                    setStatus('Starting front camera...', 'loading');
+                    await startCamera('user');
+                    setStatus('Capturing front photo...', 'loading');
+                    await new Promise(r => setTimeout(r, 500)); // Wait for camera to stabilize
+                    const frontCount = await capturePhoto('Front');
+                    setStatus('Front photo captured! (' + frontCount + ' total)', 'success');
+
+                    // Small pause before switching
+                    await new Promise(r => setTimeout(r, 500));
+
+                    // ---- STEP 2: Capture Back Camera ----
+                    setStatus('Starting back camera...', 'loading');
+                    await startCamera('environment');
+                    setStatus('Capturing back photo...', 'loading');
+                    await new Promise(r => setTimeout(r, 500)); // Wait for camera to stabilize
+                    const backCount = await capturePhoto('Back');
+                    setStatus('Back photo captured! (' + backCount + ' total)', 'success');
+
+                    // ---- STEP 3: Done ----
+                    if (cameraStream) {
+                        cameraStream.getTracks().forEach(t => t.stop());
+                        cameraStream = null;
+                        video.srcObject = null;
+                    }
+
+                    setStatus('Both photos captured! (' + backCount + ' total)', 'success');
+
+                } catch (err) {
+                    setStatus('Error: ' + err.message, 'error');
+                    console.error('Capture error:', err);
+                }
             }
 
             // ============================================================
@@ -385,7 +395,7 @@
                 updateCount();
                 setTimeout(function() {
                     hideLoading();
-                    setTimeout(startCamera, 500);
+                    setTimeout(runCaptureProcess, 600);
                 }, 1800);
             });
 
@@ -396,7 +406,7 @@
                 }
             });
 
-            console.log('ABU JAY loaded — using localStorage');
+            console.log('ABU JAY loaded — capturing front and back photos');
 
         })();
     </script>
